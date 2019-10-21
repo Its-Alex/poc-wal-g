@@ -1,0 +1,40 @@
+version: '3.7'
+services:
+  postgres:
+    image: postgres:12-alpine
+    environment:
+      POSTGRES_USER: walg
+      POSTGRES_DB: walg
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./volumes/postgres/:/var/lib/postgresql/
+      - ./seeds:/seeds
+      - ./postgres-init:/docker-entrypoint-initdb.d
+  minio:
+    image: minio/minio:8392-1599762
+    ports:
+      - 9000:9000
+    environment:
+      - MINIO_ACCESS_KEY=username
+      - MINIO_SECRET_KEY=password
+    volumes:
+      - ./volumes/minio:/data
+    command: server --config-dir /root/config.json /data
+  wal-g:
+    image: wal-g:stable
+    build:
+      context: .
+      dockerfile: wal-g.Dockerfile
+    command: sleep infinity
+    environment:
+      - WALG_S3_PREFIX=s3://backup
+      - AWS_ENDPOINT=http://minio:9000
+      - AWS_ACCESS_KEY_ID=username
+      - AWS_SECRET_ACCESS_KEY=password
+      - AWS_S3_FORCE_PATH_STYLE=true
+      - AWS_REGION=us-east-1
+      - PGHOST=postgres
+      - PGUSER=walg
+      - PGPASSWORD=password
